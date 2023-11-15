@@ -9,7 +9,9 @@ import (
 )
 
 const (
+	BunInfoFieldName       = "bun_info"
 	OperationFieldName     = "operation"
+	OperationQueryName     = "query"
 	OperationTimeFieldName = "operation_time_ms"
 )
 
@@ -25,6 +27,7 @@ type QueryHookOptions struct {
 	SlowDuration time.Duration
 }
 
+// NewQueryHook returns a new bun.QueryHook that outputs database transactions using an instance of zerolog.Logger
 func NewQueryHook(options QueryHookOptions) QueryHook {
 	return QueryHook{
 		logger:       options.Logger,
@@ -32,18 +35,31 @@ func NewQueryHook(options QueryHookOptions) QueryHook {
 	}
 }
 
-func (qh QueryHook) BeforeQuery(ctx context.Context, event *bun.QueryEvent) context.Context {
+// BeforeQuery called before a database transaction but currently does nothing
+func (qh QueryHook) BeforeQuery(ctx context.Context, _ *bun.QueryEvent) context.Context {
 	return ctx
 }
 
-func (qh QueryHook) AfterQuery(ctx context.Context, event *bun.QueryEvent) {
+// AfterQuery logs an entry after a database transaction
+func (qh QueryHook) AfterQuery(_ context.Context, event *bun.QueryEvent) {
 	queryDuration := time.Since(event.StartTime)
 
 	fields := map[string]interface{}{
+		OperationQueryName:     event.Query,
 		OperationFieldName:     event.Operation(),
 		OperationTimeFieldName: queryDuration.Milliseconds(),
 	}
 
-	qh.logger.Debug().Fields(fields).Msg("")
+	bunLogger := qh.logger.With().Dict(
+		BunInfoFieldName,
+		zerolog.Dict().Fields(fields),
+	).Logger()
+
+	if event.Err != nil {
+		bunLogger.Error().Err(event.Err).Msg("")
+		return
+	}
+
+	bunLogger.Debug().Msg("")
 
 }
