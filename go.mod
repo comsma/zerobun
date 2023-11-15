@@ -1,4 +1,4 @@
-module zerobun
+module github.com/comsma/zerobun
 
 go 1.21
 
