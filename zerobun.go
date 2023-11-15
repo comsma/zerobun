@@ -44,6 +44,6 @@ func (qh QueryHook) AfterQuery(ctx context.Context, event *bun.QueryEvent) {
 		OperationTimeFieldName: queryDuration.Milliseconds(),
 	}
 
-	qh.logger.Debug().Fields(fields)
+	qh.logger.Debug().Fields(fields).Msg("")
 
 }
